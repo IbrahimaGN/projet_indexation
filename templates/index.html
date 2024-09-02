@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Moteur de Recherche avec Dashboard</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            transition: background-color 0.3s, color 0.3s;
+        }
+        .dark-mode {
+            background-color: #121212; /* Couleur de fond sombre */
+            color: #e0e0e0; /* Couleur du texte claire */
+        }
+        .light-mode {
+            background-color: #f4f4f4; /* Couleur de fond claire */
+            color: #333; /* Couleur du texte sombre */
+        }
+        h1 {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .dark-mode h1 {
+            color: #ffffff; /* Couleur du texte du titre pour le mode sombre */
+        }
+        .light-mode h1 {
+            color: #333; /* Couleur du texte du titre pour le mode clair */
+        }
+        .search-container {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+        #searchQuery {
+            width: 30%;
+            padding: 10px;
+            font-size: 16px;
+            border-radius: 4px;
+            transition: background-color 0.3s, color 0.3s;
+        }
+        .dark-mode #searchQuery {
+            background-color: #333;
+            color: #e0e0e0;
+            border: 1px solid #555;
+        }
+        .light-mode #searchQuery {
+            background-color: #fff;
+            color: #333;
+            border: 1px solid #ddd;
+        }
+        #results {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .result-item {
+            border-radius: 4px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+            padding: 15px;
+            margin-bottom: 10px;
+            width: 80%;
+            max-width: 800px;
+            text-align: left;
+            transition: background-color 0.3s, color 0.3s;
+        }
+        .dark-mode .result-item {
+            background: #1e1e1e; /* Couleur de fond des résultats pour le mode sombre */
+            border: 1px solid #333;
+            color: #e0e0e0; /* Couleur du texte des résultats */
+        }
+        .light-mode .result-item {
+            background: #fff; /* Couleur de fond des résultats pour le mode clair */
+            border: 1px solid #ddd;
+            color: #333; /* Couleur du texte des résultats pour le mode clair */
+        }
+        .result-item h3 {
+            margin: 0 0 10px;
+            font-size: 18px;
+            transition: color 0.3s;
+        }
+        .dark-mode .result-item h3 {
+            color: #ffffff; /* Couleur du titre des résultats pour le mode sombre */
+        }
+        .light-mode .result-item h3 {
+            color: #333; /* Couleur du titre des résultats pour le mode clair */
+        }
+        .result-item p {
+            margin: 0;
+            transition: color 0.3s;
+        }
+        .dark-mode .result-item p {
+            color: #b0b0b0; /* Couleur du texte des détails des résultats */
+        }
+        .light-mode .result-item p {
+            color: #666; /* Couleur du texte des détails des résultats pour le mode clair */
+        }
+        .dashboard-container {
+            margin-top: 40px;
+            text-align: center;
+        }
+        iframe {
+            width: 100%;
+            height: 600px;
+            border: none;
+        }
+        button {
+            background-color: #007BFF;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-top: 20px;
+            display: block;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        #toggleMode {
+            background-color: #6c757d;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            position: fixed;
+            top: 20px;
+            right: 20px;
+        }
+        #toggleMode:hover {
+            background-color: #5a6268;
+        }
+    </style>
+</head>
+<body class="dark-mode">
+    <button id="toggleMode">Mode clair</button>
+    <h1>Moteur de Recherche pour les Produits</h1>
+    <div class="search-container">
+        <input type="text" id="searchQuery" placeholder="Rechercher..." oninput="search()">
+    </div>
+    <div id="results"></div>
+
+    <button><a href="dashboard.html" style="text-decoration: none; color: white;">Dashboard</a></button>
+
+    <script>
+        let debounceTimer;
+        const toggleButton = document.getElementById('toggleMode');
+        const body = document.body;
+
+        // Toggle dark mode
+        toggleButton.addEventListener('click', () => {
+            if (body.classList.contains('dark-mode')) {
+                body.classList.remove('dark-mode');
+                body.classList.add('light-mode');
+                toggleButton.textContent = 'Mode sombre';
+            } else {
+                body.classList.remove('light-mode');
+                body.classList.add('dark-mode');
+                toggleButton.textContent = 'Mode clair';
+            }
+        });
+
+        function search() {
+            clearTimeout(debounceTimer);
+            debounceTimer = setTimeout(() => {
+                const query = document.getElementById('searchQuery').value;
+                if (query.length === 0) {
+                    document.getElementById('results').innerHTML = '';
+                    return;
+                }
+                fetch(`/search?q=${encodeURIComponent(query)}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        const resultsDiv = document.getElementById('results');
+                        resultsDiv.innerHTML = '';
+                        if (data.length === 0) {
+                            resultsDiv.innerHTML = '<p>Aucun résultat trouvé.</p>';
+                            return;
+                        }
+                        data.forEach(item => {
+                            const product = item._source;
+                            const productDiv = document.createElement('div');
+                            productDiv.classList.add('result-item');
+                            productDiv.innerHTML = `
+                                <h3>${product.Brand}</h3>
+                                <p>${product.Description}</p>
+                                <p><strong>Prix:</strong> $${product.Price}</p>
+                                <p><strong>Évaluation:</strong> ${product.Rating}</p>
+                            `;
+                            resultsDiv.appendChild(productDiv);
+                        });
+                    })
+                    .catch(error => {
+                        console.error('Erreur lors de la récupération des résultats de recherche:', error);
+                    });
+            }, 300); // 300 ms debounce time
+        }
+    </script>
+</body>
+</html>
